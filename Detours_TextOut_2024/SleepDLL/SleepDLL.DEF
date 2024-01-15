@@ -1,0 +1,3 @@
+LIBRARY SleepDLL
+EXPORTS
+	DllMain			@1

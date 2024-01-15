@@ -1,0 +1,3 @@
+LIBRARY ShellHookDLL
+EXPORTS
+	DllMain			@1

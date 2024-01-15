@@ -1,0 +1,39 @@
+#pragma comment(lib, "detoured.lib")
+#pragma comment(lib, "detours.lib")
+#pragma comment(lib, "shell32.lib")
+
+#include <windows.h>
+#include <shellapi.h>
+#include <detours\detours.h>
+
+int (__stdcall *pShellAboutW)(HWND, LPCWSTR, LPCWSTR, HICON) = ShellAboutW;
+
+int __stdcall MyShellAboutW(HWND hWnd, LPCWSTR szApp, LPCWSTR szOtherStuff,
+							HICON hIcon)
+{
+	MessageBox(0, L"This is my hooked about box.", L"Hooked About", MB_OK|MB_ICONINFORMATION );
+return pShellAboutW(hWnd, szApp, szOtherStuff, hIcon);
+}
+
+__declspec(dllexport) INT APIENTRY DllMain(HMODULE hDLL, DWORD Reason, LPVOID Reserved)
+{
+	switch(Reason)
+	{
+	case DLL_PROCESS_ATTACH:
+		DetourTransactionBegin();
+		DetourUpdateThread(GetCurrentThread());
+		DetourAttach(&(PVOID&)pShellAboutW, MyShellAboutW);
+		DetourTransactionCommit();
+		break;
+	case DLL_PROCESS_DETACH:
+		DetourTransactionBegin();
+		DetourUpdateThread(GetCurrentThread());
+		DetourDetach(&(PVOID&)pShellAboutW, MyShellAboutW);
+		DetourTransactionCommit();
+		break;
+	case DLL_THREAD_ATTACH:
+	case DLL_THREAD_DETACH:
+		break;
+	}
+	return TRUE;
+}

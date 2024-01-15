@@ -1,0 +1,84 @@
+{\rtf1\ansi\ansicpg1252\deff0\deflang1033{\fonttbl{\f0\froman\fcharset0 Times New Roman;}{\f1\fswiss\fcharset0 Courier New;}{\f2\fswiss\fcharset0 Arial;}{\f3\fnil\fcharset2 Symbol;}}
+{\colortbl ;\red0\green0\blue255;}
+{\*\generator Msftedit 5.41.15.1507;}\viewkind4\uc1\pard\sb100\sa100\f0\fs24 It seems from many of my other articles that I have become the "Print" guru here at CodeProject. So I though I would gather together a list of printing Tricks and Tips that I have collected together over a period of time through trial and error.\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\fi-360\li720\sb100\sa100\b Only ever print inside the \f1\fs20 CPrintInfo::m_rectDraw\f0\fs24  area\b0  \par
+\pard\li720\sb100\sa100 Your printing code should not make assumptions about where it should print on the page, and make proper use of the \f1\fs20 CPrintInfo::m_rectDraw\f0\fs24  variable. This ensures that you will not overwrite margins/headers/footers that may be printed outside of your main \f1\fs20 OnPrint\f0\fs24  procedure.\par
+\f2\fs20{\pict\wmetafile8\picwgoal135\pichgoal135 
+0100090000034c00000003001c00000000000400000003010600050000000c02ee00ee00070000
+00fc020000000000000000040000002d01000008000000fa020000000000000000000004000000
+2d0101001c000000fb020c00090000000000900100000000000202024d532053616e7320536572
+6966000a0027008a0100000000ffffffff78e78401040000002d010200030000000000
+}\f0\fs24 Collapse\f2\fs20{\pict\wmetafile8\picwgoal240\pichgoal240 
+0100090000034c00000003001c00000000000400000003010600050000000c02a701a701070000
+00fc020000000000000000040000002d01000008000000fa020000000000000000000004000000
+2d0101001c000000fb020c00090000000000900100000000000202024d532053616e7320536572
+6966000a0027008a0100000000ffffffff78e78401040000002d010200030000000000
+}\f0\fs24{\field{\*\fldinst{HYPERLINK "\\\\l """}}{\fldrslt{\cf1\ul  Copy Code}}}\cf0\ulnone\f0\fs24\par
+\pard\li720\tx0\tx959\tx1918\tx2877\tx3836\tx4795\tx5754\tx6713\tx7672\tx8631\f1\fs20 pDC->TextOut(pInfo->m_rectDraw.left, pInfo->m_rectDraw.top, \par
+             "Only draw inside the reported m_rectDraw area") ;\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\fi-360\li720\sb100\sa100\b\f0\fs24 Getting a PrinterDC in OnPreparePrinting()\b0  \par
+\pard\li720\sb100\sa100 When \f1\fs20 OnPreparePrinting()\f0\fs24  is called in your \f1\fs20 CView\f0\fs24  derived class, you are generally required to setup the number of pages of output your document will need when printing, unless you are using the \f1\fs20 CPrintInfo::m_bContinuePrinting\f0\fs24  method. But it can be difficult to do this if you have no information on the printer resolution or page size. So at this point you need to get hold of the printer DC object that will be used. As the MFC print architecture would not create this until the \f1\fs20 OnBeginPrinting()\f0\fs24  function would be called, you have to create one yourself and release it after calculating the number of pages you want to print. To create such a printer DC you can use this code:\par
+\f2\fs20{\pict\wmetafile8\picwgoal135\pichgoal135 
+0100090000034c00000003001c00000000000400000003010600050000000c02ee00ee00070000
+00fc020000000000000000040000002d01000008000000fa020000000000000000000004000000
+2d0101001c000000fb020c00090000000000900100000000000202024d532053616e7320536572
+6966000a0027008a0100000000ffffffff78e78401040000002d010200030000000000
+}\f0\fs24 Collapse\f2\fs20{\pict\wmetafile8\picwgoal240\pichgoal240 
+0100090000034c00000003001c00000000000400000003010600050000000c02a701a701070000
+00fc020000000000000000040000002d01000008000000fa020000000000000000000004000000
+2d0101001c000000fb020c00090000000000900100000000000202024d532053616e7320536572
+6966000a0027008a0100000000ffffffff78e78401040000002d010200030000000000
+}\f0\fs24{\field{\*\fldinst{HYPERLINK "\\\\l """}}{\fldrslt{\cf1\ul  Copy Code}}}\cf0\ulnone\f0\fs24\par
+\pard\li720\tx0\tx959\tx1918\tx2877\tx3836\tx4795\tx5754\tx6713\tx7672\tx8631\f1\fs20 CDC dc ;\par
+AfxGetApp()->CreatePrinterDC(dc) ;\par
+    \par
+...\par
+\par
+// when finished with the DC, you should delete it\par
+dc.DeleteDC() ;\par
+\pard\li720\sb100\sa100\f0\fs24 This will create a printer DC for the default printer selected for you application. To switch to a different printer in code you should see my article {\field{\*\fldinst{HYPERLINK "http://www.codeproject.com/printing/printerselect.asp"}}{\fldrslt{\cf1\ul Setting the default printer programmatically in an MFC application}}}\cf0\ulnone\f0\fs24\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\fi-360\li720\sb100\sa100\b Getting the size of the printable page area\b0  \par
+\pard\li720\sb100\sa100 The printable area of a page on a printer is normally contained in the \f1\fs20 CPrintInfo::m_rectDraw\f0\fs24  member variable. A \f1\fs20 CPrintInfo\f0\fs24  object gets passed through to your \f1\fs20 CView\f0\fs24  overridden virtual functions. But in some cases, like in \f1\fs20 OnPreparePrinting(), OnBeginPrinting()\f0\fs24 , this member variable will not yet have been intialised. So you have to do it yourself.\par
+\f2\fs20{\pict\wmetafile8\picwgoal135\pichgoal135 
+0100090000034c00000003001c00000000000400000003010600050000000c02ee00ee00070000
+00fc020000000000000000040000002d01000008000000fa020000000000000000000004000000
+2d0101001c000000fb020c00090000000000900100000000000202024d532053616e7320536572
+6966000a0027008a0100000000ffffffff78e78401040000002d010200030000000000
+}\f0\fs24 Collapse\f2\fs20{\pict\wmetafile8\picwgoal240\pichgoal240 
+0100090000034c00000003001c00000000000400000003010600050000000c02a701a701070000
+00fc020000000000000000040000002d01000008000000fa020000000000000000000004000000
+2d0101001c000000fb020c00090000000000900100000000000202024d532053616e7320536572
+6966000a0027008a0100000000ffffffff78e78401040000002d010200030000000000
+}\f0\fs24{\field{\*\fldinst{HYPERLINK "\\\\l """}}{\fldrslt{\cf1\ul  Copy Code}}}\cf0\ulnone\f0\fs24\par
+\pard\li720\tx0\tx959\tx1918\tx2877\tx3836\tx4795\tx5754\tx6713\tx7672\tx8631\f1\fs20 pInfo->m_rectDraw.SetRect(0, 0, \par
+                          pDC->GetDeviceCaps(HORZRES), \par
+                          pDC->GetDeviceCaps(VERTRES)) ;\par
+\pard\li720\sb100\sa100\f0\fs24 This gets the printable area of a printers page.\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\fi-360\li720\sb100\sa100\b Margins\b0  \par
+\pard\li720\sb100\sa100 In many cases you may want to have a user programmable margin around a page so that you do not over-print company logo's etc on headed paper, so you can set a user programmable range for you margins in \f1\fs20 inches\f0\fs24 . You can then convert these to device units and reserve that space on the page by changing the dimensions of the \f1\fs20 CPrintInfo::m_rectDraw\f0\fs24  variable. For example:\par
+\f2\fs20{\pict\wmetafile8\picwgoal135\pichgoal135 
+0100090000034c00000003001c00000000000400000003010600050000000c02ee00ee00070000
+00fc020000000000000000040000002d01000008000000fa020000000000000000000004000000
+2d0101001c000000fb020c00090000000000900100000000000202024d532053616e7320536572
+6966000a0027008a0100000000ffffffff78e78401040000002d010200030000000000
+}\f0\fs24 Collapse\f2\fs20{\pict\wmetafile8\picwgoal240\pichgoal240 
+0100090000034c00000003001c00000000000400000003010600050000000c02a701a701070000
+00fc020000000000000000040000002d01000008000000fa020000000000000000000004000000
+2d0101001c000000fb020c00090000000000900100000000000202024d532053616e7320536572
+6966000a0027008a0100000000ffffffff78e78401040000002d010200030000000000
+}\f0\fs24{\field{\*\fldinst{HYPERLINK "\\\\l """}}{\fldrslt{\cf1\ul  Copy Code}}}\cf0\ulnone\f0\fs24\par
+\pard\li720\tx0\tx959\tx1918\tx2877\tx3836\tx4795\tx5754\tx6713\tx7672\tx8631\f1\fs20 double LeftOffset = 0.5 ;       // in imperial inches!\par
+double TopOffset = 0.5 ;        // in imperial inches!\par
+double RightOffset = 0.5 ;      // in imperial inches!\par
+double BottomOffset = 0.5 ;     // in imperial inches!\par
+pInfo->m_rectDraw.DeflateRect(\par
+    (int)(pDC->GetDeviceCaps(LOGPIXELSX) * LeftOffset),\par
+    (int)(pDC->GetDeviceCaps(LOGPIXELSY) * TopOffset),\par
+    (int)(pDC->GetDeviceCaps(LOGPIXELSX) * RightOffset),\par
+    (int)(pDC->GetDeviceCaps(LOGPIXELSY) * BottomOffset)) ;\par
+\pard\li720\sb100\sa100\f0\fs24 You will need to apply these changes to the \f1\fs20 m_rectDraw\f0\fs24  variable for every page printed, as the rectangle gets reset for every page loop in the MFC stock library code.\par
+\pard{\pntext\f3\'B7\tab}{\*\pn\pnlvlblt\pnf3\pnindent360{\pntxtb\'B7}}\fi-360\li720\sb100\sa100\b Choosing a suitable font size for printing\b0  \par
+\pard\li720\sb100\sa100 When printing, choosing a font size that is suitable for the resolution of the printer in the past has been a hit and miss affair. I have had code that worked correctly on my development PC/printer setup, only to die horribly on a users PC/printer in Japan (e.g. the text generated was 1 pixel in height). Getting consistent output across printers can be done by selecting the font size based on the resolution reported by the printer:\par
+\pard\f2\fs20\par
+}
+ 
