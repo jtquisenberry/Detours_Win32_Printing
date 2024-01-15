@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SleepDLL", "SleepDLL\SleepD
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WithDllEXE", "WithDLL\WithDLL.vcxproj", "{D8C088C7-CC84-49A0-82A1-00819A320B97}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GetSpoolFile", "GetSpoolFile\GetSpoolFile.vcxproj", "{4EE2E18A-965D-46FA-8975-C8711FD623DB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -51,6 +53,14 @@ Global
 		{D8C088C7-CC84-49A0-82A1-00819A320B97}.Release|x64.Build.0 = Release|x64
 		{D8C088C7-CC84-49A0-82A1-00819A320B97}.Release|x86.ActiveCfg = Release|Win32
 		{D8C088C7-CC84-49A0-82A1-00819A320B97}.Release|x86.Build.0 = Release|Win32
+		{4EE2E18A-965D-46FA-8975-C8711FD623DB}.Debug|x64.ActiveCfg = Debug|x64
+		{4EE2E18A-965D-46FA-8975-C8711FD623DB}.Debug|x64.Build.0 = Debug|x64
+		{4EE2E18A-965D-46FA-8975-C8711FD623DB}.Debug|x86.ActiveCfg = Debug|Win32
+		{4EE2E18A-965D-46FA-8975-C8711FD623DB}.Debug|x86.Build.0 = Debug|Win32
+		{4EE2E18A-965D-46FA-8975-C8711FD623DB}.Release|x64.ActiveCfg = Release|x64
+		{4EE2E18A-965D-46FA-8975-C8711FD623DB}.Release|x64.Build.0 = Release|x64
+		{4EE2E18A-965D-46FA-8975-C8711FD623DB}.Release|x86.ActiveCfg = Release|Win32
+		{4EE2E18A-965D-46FA-8975-C8711FD623DB}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
