@@ -135,6 +135,8 @@ BOOL GetFileNameFromHandle(HANDLE hFile)
 
 void  Read(HANDLE hFile)
 {
+    // https://learn.microsoft.com/en-us/windows/win32/fileio/opening-a-file-for-reading-or-writing
+    
     //HANDLE hFile;
     DWORD  dwBytesRead = 0;
     char   ReadBuffer[BUFFERSIZE] = { 0 };
