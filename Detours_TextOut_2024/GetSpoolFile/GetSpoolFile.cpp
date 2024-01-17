@@ -39,6 +39,21 @@ VOID CALLBACK FileIOCompletionRoutine(
     g_BytesTransferred = dwNumberOfBytesTransfered;
 }
 
+void filecopy(FILE* dest, FILE* src)
+{
+    const int size = 16384;
+    char buffer[size];
+
+    while (!feof(src))
+    {
+        int n = fread(buffer, 1, size, src);
+        fwrite(buffer, 1, n, dest);
+    }
+
+    fflush(dest);
+}
+
+
 
 BOOL GetFileNameFromHandle(HANDLE hFile)
 {
@@ -146,8 +161,30 @@ void  Read(HANDLE hFile)
 
     // Read one character less than the buffer size to save room for
     // the terminating NULL character. 
+    int nHandle = _open_osfhandle((intptr_t)hFile, O_RDONLY);
+    FILE* fp = _fdopen(nHandle, "rb");
+    FILE* out = fopen("d:\\projects\\def.spl", "wb");
+    
+    /*
+    size_t n, m;
+    unsigned char buff[8192];
+    do {
+        n = fread(buff, 1, sizeof buff, fp);
+        int a = 1;
+        if (n) m = fwrite(buff, 1, n, out);
+        else   m = 0;
+    } while ((n > 0)); //&& (n == m));
+    if (m) perror("copy");
+    */
+
+
+    
+    //fclose(out);
+
 
     BOOL result = ReadFileEx(hFile, ReadBuffer, BUFFERSIZE - 1, &ol, FileIOCompletionRoutine);
+    ReadFileEx(hFile, ReadBuffer, BUFFERSIZE - 1, &ol, FileIOCompletionRoutine);
+    int a = 1;
 
     /*
     SleepEx(5000, TRUE);
@@ -190,8 +227,30 @@ int main()
 
     // GetFileNameFromHandle(hFile);
     Read(hFile);
-    //int nHandle = _open_osfhandle((intptr_t)hFile, O_RDONLY);
-    //FILE* fp = _fdopen(nHandle, "rb");
+    /*
+    int nHandle = _open_osfhandle((intptr_t)hFile, O_RDONLY);
+    FILE* fp = _fdopen(nHandle, "rb");
+    FILE* out = fopen("d:\\projects\\abc.spl", "wb");
+    filecopy(out, fp);
+    fclose(fp);
+    fclose(out);
+    */
+
+    /*
+    void fileopen_and_copy(char* dest, char* src)
+    {
+        FILE* infile = fopen(src, "rb");
+        FILE* outfile = fopen(dest, "wb");
+
+        filecopy(outfile, infile);
+
+        fclose(infile);
+        fclose(outfile);
+    }
+    */
+
+
+
     
     int a = 1;
 
