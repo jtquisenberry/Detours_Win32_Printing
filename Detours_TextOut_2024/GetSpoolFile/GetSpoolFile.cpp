@@ -148,7 +148,75 @@ BOOL GetFileNameFromHandle(HANDLE hFile)
     return(bSuccess);
 }
 
-void  Read(HANDLE hFile)
+
+void ReadFileFromPath(LPCWSTR path)
+{
+    // Based on
+    // https://learn.microsoft.com/en-us/windows/win32/fileio/opening-a-file-for-reading-or-writing
+    HANDLE hFile = CreateFile(path,
+        GENERIC_ALL, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    DWORD  dwBytesRead = 0;
+    char   ReadBuffer[BUFFERSIZE] = { 0 };
+    OVERLAPPED ol = { 0 };
+
+    // Get standard file information from handle
+    LPBY_HANDLE_FILE_INFORMATION lpFileInformation = (LPBY_HANDLE_FILE_INFORMATION)malloc(sizeof(LPBY_HANDLE_FILE_INFORMATION));
+    BOOL result = 0;
+    result = GetFileInformationByHandle(hFile, lpFileInformation);
+    wprintf(L"nFileSizeHigh %d\n", lpFileInformation->nFileSizeLow);
+
+    // Get filename information from handle
+    size_t size = sizeof(FILE_NAME_INFO) + sizeof(WCHAR) * MAX_PATH;
+    FILE_NAME_INFO* FileInformation;
+    FileInformation = (FILE_NAME_INFO*)(malloc(size));
+    FileInformation->FileNameLength = MAX_PATH;
+    result = GetFileInformationByHandleEx(hFile, FileNameInfo, FileInformation, size);
+    std::wstring w(FileInformation->FileName);
+    w = w.substr(0, FileInformation->FileNameLength/2);
+    wprintf(L"Filename: %s\n", w.c_str());
+
+    printf("\n");
+
+    int nHandle = _open_osfhandle((intptr_t)hFile, O_RDONLY);
+    FILE* in = _fdopen(nHandle, "rb");
+    FILE* out = fopen("d:\\projects\\def.spl", "wb");
+
+    result = ReadFileEx(hFile, ReadBuffer, BUFFERSIZE - 1, &ol, FileIOCompletionRoutine);
+    if (result == FALSE)
+    {
+        printf("Terminal failure: Unable to read from file.\n GetLastError=%08x\n", GetLastError());
+    }
+
+    SleepEx(3000, TRUE);
+    dwBytesRead = g_BytesTransferred;
+
+    /*
+    // Add a while loop her to allow reading and writing chunks.
+    while (true)
+    {
+        if (dwBytesRead > 0 && dwBytesRead <= BUFFERSIZE - 1)
+        {
+            // Write
+        }
+        else if (dwBytesRead == 0)
+        {
+            // end while
+        }
+        else
+        {
+            printf("\n ** Unexpected value for dwBytesRead ** \n");
+        }
+
+        // It is always good practice to close the open file handles even though
+        // the app will exit here and clean up open handles anyway.
+    }
+    */
+    
+    CloseHandle(hFile);
+}
+
+
+void ReadSpoolFileFromPrinter()
 {
     // https://learn.microsoft.com/en-us/windows/win32/fileio/opening-a-file-for-reading-or-writing
     
@@ -159,37 +227,18 @@ void  Read(HANDLE hFile)
 
     printf("\n");
 
-    // Read one character less than the buffer size to save room for
-    // the terminating NULL character. 
-    int nHandle = _open_osfhandle((intptr_t)hFile, O_RDONLY);
-    FILE* fp = _fdopen(nHandle, "rb");
     FILE* out = fopen("d:\\projects\\def.spl", "wb");
-    
-    /*
-    size_t n, m;
-    unsigned char buff[8192];
-    do {
-        n = fread(buff, 1, sizeof buff, fp);
-        int a = 1;
-        if (n) m = fwrite(buff, 1, n, out);
-        else   m = 0;
-    } while ((n > 0)); //&& (n == m));
-    if (m) perror("copy");
-    */
 
     LPTSTR printerName = (LPTSTR)L"Bullzip PDF Printer";
     PRINTER_DEFAULTS* pDefault = new PRINTER_DEFAULTS();
-    // pDefault->DesiredAccess = PRINTER_ALL_ACCESS;
+    pDefault->DesiredAccess = PRINTER_ALL_ACCESS;
     // pDefault->DesiredAccess = PRINTER_ACCESS_ADMINISTER;
-    pDefault->DesiredAccess = PRINTER_ACCESS_USE;
-
+    // pDefault->DesiredAccess = PRINTER_ACCESS_USE;
 
     HANDLE phPrinter;
     BOOL result = OpenPrinter(printerName, &phPrinter, pDefault);
-
     JOB_INFO_2* pJobInfo = 0;
     DWORD bytesNeeded = 0, jobsReturned = 0;
-
 
     //Get info about jobs in queue.
     int numJobs = 999;
@@ -197,32 +246,33 @@ void  Read(HANDLE hFile)
     pJobInfo = (JOB_INFO_2*)malloc(bytesNeeded);
     EnumJobs(phPrinter, 0, numJobs, 2, (LPBYTE)pJobInfo, bytesNeeded, &bytesNeeded, &jobsReturned);
 
-    //Loop and delete each waiting job
+    // Iterate over jobs.
+    int jobId = 0;
     for (int count = 0; count < jobsReturned; count++)
     {
         JOB_INFO_2 job = pJobInfo[count];
-        std::cout << job.JobId;
-        int a = 1;
+        wprintf(L"Job %d %s\n", job.JobId, job.pDriverName);
         
-        /*
-        cout << "Deleting JobID  " << pJobInfo[count].JobId;
-        if (SetJob(hPrinter, pJobInfo[count].JobId, 0, NULL, JOB_CONTROL_DELETE) != 0)
+        if (count == 0)
         {
-            cout << "...... Deleted OK" << endl;
+            jobId = job.JobId;
         }
-        else
-        {
-            cout << "...... Failed to Delete" << endl;
-        }
-        */
+
+        int a = 1;
+
+        // Delete job
+        // SetJob(phPrinter, pJobInfo[count].JobId, 0, NULL, JOB_CONTROL_DELETE);
     }
 
     free(pJobInfo);//free now
-    // ClosePrinter(phPrinter);
+    
 
-
+    //std::string printerName = "Bullzip PDF Printer, Job 0042";
+    wchar_t printerName2[] = L"Bullzip PDF Printer";
+    wchar_t str[80];
+    wsprintf(str, L"%s, Job %04d", printerName2, jobId);
     HANDLE phPrinter2;
-    BOOL result2 = OpenPrinter((LPTSTR)L"Bullzip PDF Printer, Job 0042", &phPrinter2, NULL);
+    BOOL result2 = OpenPrinter((LPTSTR)str, &phPrinter2, NULL);
 
 
 
@@ -241,48 +291,30 @@ void  Read(HANDLE hFile)
 
     pJobInfo = (JOB_INFO_2*)malloc(bytesNeeded);
 
-    LPVOID pBuf = (LPVOID)malloc(64);
-    DWORD pNoBytesRead = (DWORD)malloc(16);
-    BOOL xxx = ReadPrinter(phPrinter2, &pBuf, 16, &pNoBytesRead);
-    char charBuf[1024];
-    memcpy(charBuf, &pBuf, 8);
-    sprintf(charBuf, "%c", pBuf);
-    std::string s(charBuf);
+    LPVOID pBuf = (LPVOID)malloc(1000010);
+    DWORD pNoBytesRead = 0; // = (DWORD)malloc(16);
+    BOOL result_ReadPrinter = ReadPrinter(phPrinter2, pBuf, 1000000, &pNoBytesRead);
     
+    // Consider moving from stack to heap using malloc
+    // https://github.com/MicrosoftDocs/cpp-docs/blob/main/docs/code-quality/c6262.md
+    BYTE byteBuf[1000020];
+    memcpy(byteBuf, pBuf, 1000000);
+    FILE* file = fopen("d:\\projects\\ghi.spl", "wb");
+    fwrite(byteBuf, 1, pNoBytesRead, file);
+    fclose(file);
+    // free(byteBuf);
 
-    //fclose(out);
+    char charBuf[16];
+    memcpy(charBuf, pBuf, 10);
+    std::string s(charBuf);
+    std::cout << s.substr(0, 10);
+    std::cout << "\n";
+    // free(charBuf);
 
-
-    //BOOL result = ReadFileEx(hFile, ReadBuffer, BUFFERSIZE - 1, &ol, FileIOCompletionRoutine);
-    ReadFileEx(hFile, ReadBuffer, BUFFERSIZE - 1, &ol, FileIOCompletionRoutine);
-    int a = 1;
-
-    /*
-    SleepEx(5000, TRUE);
-    dwBytesRead = g_BytesTransferred;
-    // This is the section of code that assumes the file is ANSI text. 
-    // Modify this block for other data types if needed.
-
-    if (dwBytesRead > 0 && dwBytesRead <= BUFFERSIZE - 1)
-    {
-        ReadBuffer[dwBytesRead] = '\0'; // NULL character
-
-        _tprintf(TEXT("Data read from %s (%d bytes): \n"), argv[1], dwBytesRead);
-        printf("%s\n", ReadBuffer);
-    }
-    else if (dwBytesRead == 0)
-    {
-        _tprintf(TEXT("No data read from file %s\n"), argv[1]);
-    }
-    else
-    {
-        printf("\n ** Unexpected value for dwBytesRead ** \n");
-    }
-
-    // It is always good practice to close the open file handles even though
-    // the app will exit here and clean up open handles anyway.
-    */
-    CloseHandle(hFile);
+    // Cleanup
+    free(pBuf);
+    ClosePrinter(phPrinter);
+            
 }
 
 
@@ -291,59 +323,26 @@ void  Read(HANDLE hFile)
 
 int main()
 {
-    // std::cout << "Hello World!\n";
+    /* Read file given a fully-qualified filename. */
+    LPCWSTR spoolFilePath = L"C:\\Windows\\System32\\spool\\PRINTERS\\00002.SPL";
+    ReadFileFromPath(spoolFilePath);
 
-    HANDLE hFile = CreateFile(L"C:\\Windows\\System32\\spool\\PRINTERS\\00002.SPL", 
+    /* Read spool file from Printer */
+    ReadSpoolFileFromPrinter();
+
+    /* Read the file given a handle */
+    HANDLE hFile = CreateFile(spoolFilePath,
         GENERIC_ALL, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-
-    // GetFileNameFromHandle(hFile);
-    Read(hFile);
-    /*
+    GetFileNameFromHandle(hFile);
     int nHandle = _open_osfhandle((intptr_t)hFile, O_RDONLY);
     FILE* fp = _fdopen(nHandle, "rb");
     FILE* out = fopen("d:\\projects\\abc.spl", "wb");
     filecopy(out, fp);
     fclose(fp);
     fclose(out);
-    */
-
-    /*
-    void fileopen_and_copy(char* dest, char* src)
-    {
-        FILE* infile = fopen(src, "rb");
-        FILE* outfile = fopen(dest, "wb");
-
-        filecopy(outfile, infile);
-
-        fclose(infile);
-        fclose(outfile);
-    }
-    */
-
-
-
-    
-    int a = 1;
-
-
-
-
-
-
-
-
-
-
+        
+    return 0;
 
 }
 
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
 
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
