@@ -11,7 +11,7 @@
 #include <string.h>
 #include <psapi.h>
 #include <strsafe.h>
-
+#include <string.h>
 
 //#include <unistd.h>
 #include <fcntl.h>
@@ -177,12 +177,83 @@ void  Read(HANDLE hFile)
     if (m) perror("copy");
     */
 
+    LPTSTR printerName = (LPTSTR)L"Bullzip PDF Printer";
+    PRINTER_DEFAULTS* pDefault = new PRINTER_DEFAULTS();
+    // pDefault->DesiredAccess = PRINTER_ALL_ACCESS;
+    // pDefault->DesiredAccess = PRINTER_ACCESS_ADMINISTER;
+    pDefault->DesiredAccess = PRINTER_ACCESS_USE;
 
+
+    HANDLE phPrinter;
+    BOOL result = OpenPrinter(printerName, &phPrinter, pDefault);
+
+    JOB_INFO_2* pJobInfo = 0;
+    DWORD bytesNeeded = 0, jobsReturned = 0;
+
+
+    //Get info about jobs in queue.
+    int numJobs = 999;
+    EnumJobs(phPrinter, 0, numJobs, 2, (LPBYTE)pJobInfo, 0, &bytesNeeded, &jobsReturned);
+    pJobInfo = (JOB_INFO_2*)malloc(bytesNeeded);
+    EnumJobs(phPrinter, 0, numJobs, 2, (LPBYTE)pJobInfo, bytesNeeded, &bytesNeeded, &jobsReturned);
+
+    //Loop and delete each waiting job
+    for (int count = 0; count < jobsReturned; count++)
+    {
+        JOB_INFO_2 job = pJobInfo[count];
+        std::cout << job.JobId;
+        int a = 1;
+        
+        /*
+        cout << "Deleting JobID  " << pJobInfo[count].JobId;
+        if (SetJob(hPrinter, pJobInfo[count].JobId, 0, NULL, JOB_CONTROL_DELETE) != 0)
+        {
+            cout << "...... Deleted OK" << endl;
+        }
+        else
+        {
+            cout << "...... Failed to Delete" << endl;
+        }
+        */
+    }
+
+    free(pJobInfo);//free now
+    // ClosePrinter(phPrinter);
+
+
+    HANDLE phPrinter2;
+    BOOL result2 = OpenPrinter((LPTSTR)L"Bullzip PDF Printer, Job 0042", &phPrinter2, NULL);
+
+
+
+
+    //HANDLE phPrinter;
+    //BOOL result = OpenPrinter((LPTSTR)L"Bullzip PDF Printer", &phPrinter, NULL);
+
+    printf("phPrinter: %p\n", phPrinter);
+    printf("phPrinter2: %p\n", phPrinter2);
+
+    HANDLE hSpoolFile = GetSpoolFileHandle(phPrinter);
+    HANDLE hSpoolFile2 = GetSpoolFileHandle(phPrinter2);
+    printf("hSpoolFile: %p\n", hSpoolFile);
+    printf("hSpoolFile2: %p\n", hSpoolFile2);
     
+
+    pJobInfo = (JOB_INFO_2*)malloc(bytesNeeded);
+
+    LPVOID pBuf = (LPVOID)malloc(64);
+    DWORD pNoBytesRead = (DWORD)malloc(16);
+    BOOL xxx = ReadPrinter(phPrinter2, &pBuf, 16, &pNoBytesRead);
+    char charBuf[1024];
+    memcpy(charBuf, &pBuf, 8);
+    sprintf(charBuf, "%c", pBuf);
+    std::string s(charBuf);
+    
+
     //fclose(out);
 
 
-    BOOL result = ReadFileEx(hFile, ReadBuffer, BUFFERSIZE - 1, &ol, FileIOCompletionRoutine);
+    //BOOL result = ReadFileEx(hFile, ReadBuffer, BUFFERSIZE - 1, &ol, FileIOCompletionRoutine);
     ReadFileEx(hFile, ReadBuffer, BUFFERSIZE - 1, &ol, FileIOCompletionRoutine);
     int a = 1;
 
