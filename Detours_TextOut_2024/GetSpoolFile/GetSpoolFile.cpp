@@ -1,6 +1,7 @@
 // GetSpoolFile.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+#include "ConfigReader.h"
 #include <iostream>
 //#include <Windows.h>
 #include <io.h>
@@ -22,6 +23,10 @@
 #define BUFSIZE 512
 
 DWORD g_BytesTransferred = 0;
+std::wstring printer = L"";
+std::wstring spool_file_source_path = L"";
+std::wstring spool_file_destination_path = L"";
+std::wstring log_file_location = L"";
 
 VOID CALLBACK FileIOCompletionRoutine(
     __in  DWORD dwErrorCode,
@@ -189,34 +194,49 @@ void ReadFileFromPath(LPCWSTR path)
 
     SleepEx(3000, TRUE);
     dwBytesRead = g_BytesTransferred;
-
-    /*
-    // Add a while loop her to allow reading and writing chunks.
-    while (true)
-    {
-        if (dwBytesRead > 0 && dwBytesRead <= BUFFERSIZE - 1)
-        {
-            // Write
-        }
-        else if (dwBytesRead == 0)
-        {
-            // end while
-        }
-        else
-        {
-            printf("\n ** Unexpected value for dwBytesRead ** \n");
-        }
-
-        // It is always good practice to close the open file handles even though
-        // the app will exit here and clean up open handles anyway.
-    }
-    */
-    
     CloseHandle(hFile);
 }
 
 
-void ReadSpoolFileFromPrinter()
+void ReadPrinterData(std::wstring printerName = L"", int jobId = 2)
+{
+    
+    //std::string printerName = "Bullzip PDF Printer, Job 0042";
+    //wchar_t printerName2[] = L"Bullzip PDF Printer";
+    wprintf(L"\n");
+    wchar_t strPrinterJob[300];
+    wsprintf(strPrinterJob, L"%s, Job %04d", printerName.c_str(), jobId);
+    wprintf(L"Reading %s", strPrinterJob);
+    HANDLE phPrinter;
+    BOOL result = OpenPrinter((LPTSTR)strPrinterJob, &phPrinter, NULL);
+
+    BYTE* pBuf = (BYTE*)malloc(1000000);
+    DWORD pNoBytesRead = 0; 
+    BOOL result_ReadPrinter = ReadPrinter(phPrinter, pBuf, 1000000, &pNoBytesRead);
+
+    wchar_t strPrinterDataFile[300];
+    wsprintf(strPrinterDataFile, L"%s\\%04d%s", spool_file_destination_path.c_str(), jobId, L".bin");
+    FILE* file = _wfopen(strPrinterDataFile, L"wb");
+    // FILE* file = fopen("d:\\projects\\ghi.spl", "wb");
+    fwrite(pBuf, 1, pNoBytesRead, file);
+    fclose(file);
+
+    char charBuf[16] = {'\0'};
+    memcpy(charBuf, pBuf, 15);
+    std::string s(charBuf);
+    std::cout << s.substr(0, 15);
+    std::cout << "\n";
+    
+    // Cleanup
+    free(pBuf);
+    ClosePrinter(phPrinter);
+
+    return;
+}
+
+
+
+void ReadJobs(std::wstring printerName=L"")
 {
     // https://learn.microsoft.com/en-us/windows/win32/fileio/opening-a-file-for-reading-or-writing
     
@@ -227,16 +247,12 @@ void ReadSpoolFileFromPrinter()
 
     printf("\n");
 
-    FILE* out = fopen("d:\\projects\\def.spl", "wb");
-
-    LPTSTR printerName = (LPTSTR)L"Bullzip PDF Printer";
+    //LPTSTR printerName = (LPTSTR)L"Bullzip PDF Printer";
     PRINTER_DEFAULTS* pDefault = new PRINTER_DEFAULTS();
     pDefault->DesiredAccess = PRINTER_ALL_ACCESS;
-    // pDefault->DesiredAccess = PRINTER_ACCESS_ADMINISTER;
-    // pDefault->DesiredAccess = PRINTER_ACCESS_USE;
 
     HANDLE phPrinter;
-    BOOL result = OpenPrinter(printerName, &phPrinter, pDefault);
+    BOOL result = OpenPrinter((LPTSTR)printerName.c_str(), &phPrinter, pDefault);
     JOB_INFO_2* pJobInfo = 0;
     DWORD bytesNeeded = 0, jobsReturned = 0;
 
@@ -250,87 +266,52 @@ void ReadSpoolFileFromPrinter()
     int jobId = 0;
     for (int count = 0; count < jobsReturned; count++)
     {
-        JOB_INFO_2 job = pJobInfo[count];
-        wprintf(L"Job %d %s\n", job.JobId, job.pDriverName);
+        JOB_INFO_2 job = (JOB_INFO_2)pJobInfo[count];
+        wprintf(L"Job ID: %d, Driver: %s\n", job.JobId, job.pDriverName);
         
         if (count == 0)
         {
             jobId = job.JobId;
         }
-
-        int a = 1;
-
-        // Delete job
-        // SetJob(phPrinter, pJobInfo[count].JobId, 0, NULL, JOB_CONTROL_DELETE);
     }
 
-    free(pJobInfo);//free now
-    
-
-    //std::string printerName = "Bullzip PDF Printer, Job 0042";
-    wchar_t printerName2[] = L"Bullzip PDF Printer";
-    wchar_t str[80];
-    wsprintf(str, L"%s, Job %04d", printerName2, jobId);
-    HANDLE phPrinter2;
-    BOOL result2 = OpenPrinter((LPTSTR)str, &phPrinter2, NULL);
-
-
-
-
-    //HANDLE phPrinter;
-    //BOOL result = OpenPrinter((LPTSTR)L"Bullzip PDF Printer", &phPrinter, NULL);
-
-    printf("phPrinter: %p\n", phPrinter);
-    printf("phPrinter2: %p\n", phPrinter2);
-
-    HANDLE hSpoolFile = GetSpoolFileHandle(phPrinter);
-    HANDLE hSpoolFile2 = GetSpoolFileHandle(phPrinter2);
-    printf("hSpoolFile: %p\n", hSpoolFile);
-    printf("hSpoolFile2: %p\n", hSpoolFile2);
-    
-
-    pJobInfo = (JOB_INFO_2*)malloc(bytesNeeded);
-
-    LPVOID pBuf = (LPVOID)malloc(1000010);
-    DWORD pNoBytesRead = 0; // = (DWORD)malloc(16);
-    BOOL result_ReadPrinter = ReadPrinter(phPrinter2, pBuf, 1000000, &pNoBytesRead);
-    
-    // Consider moving from stack to heap using malloc
-    // https://github.com/MicrosoftDocs/cpp-docs/blob/main/docs/code-quality/c6262.md
-    BYTE byteBuf[1000020];
-    memcpy(byteBuf, pBuf, 1000000);
-    FILE* file = fopen("d:\\projects\\ghi.spl", "wb");
-    fwrite(byteBuf, 1, pNoBytesRead, file);
-    fclose(file);
-    // free(byteBuf);
-
-    char charBuf[16];
-    memcpy(charBuf, pBuf, 10);
-    std::string s(charBuf);
-    std::cout << s.substr(0, 10);
-    std::cout << "\n";
-    // free(charBuf);
-
-    // Cleanup
-    free(pBuf);
+    // Deallocate memory allocated by malloc.
+    free(pJobInfo);
     ClosePrinter(phPrinter);
-            
+
+    return;            
 }
 
+int SetVariables(std::unordered_map<std::wstring, std::wstring> config)
+{
+    printer = config[L"Printer"];
+    spool_file_source_path = config[L"Spool File Source Path"];
+    spool_file_destination_path = config[L"Spool File Destination Path"];
+    log_file_location = config[L"Log File Location"];
 
+    return 0;
+}
 
 
 
 int main()
 {
+    ConfigReader reader;
+    reader.Read();
+    std::unordered_map<std::wstring, std::wstring> config = reader.GetConfig();
+    SetVariables(config);
+    
+    
     /* Read file given a fully-qualified filename. */
     LPCWSTR spoolFilePath = L"C:\\Windows\\System32\\spool\\PRINTERS\\00002.SPL";
     ReadFileFromPath(spoolFilePath);
 
     /* Read spool file from Printer */
-    ReadSpoolFileFromPrinter();
+    ReadJobs(L"Bullzip PDF Printer");
+    ReadPrinterData(L"Bullzip PDF Printer", 2);
 
     /* Read the file given a handle */
+    /*
     HANDLE hFile = CreateFile(spoolFilePath,
         GENERIC_ALL, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     GetFileNameFromHandle(hFile);
@@ -340,6 +321,7 @@ int main()
     filecopy(out, fp);
     fclose(fp);
     fclose(out);
+    */
         
     return 0;
 

@@ -18,5 +18,16 @@
     <ClCompile Include="GetSpoolFile.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ConfigReader.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="StreamLogger.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="project.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

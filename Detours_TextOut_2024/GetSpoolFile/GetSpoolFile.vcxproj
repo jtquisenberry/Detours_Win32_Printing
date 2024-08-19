@@ -127,7 +127,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ConfigReader.h" />
     <ClCompile Include="GetSpoolFile.cpp" />
+    <ClCompile Include="StreamLogger.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="project.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

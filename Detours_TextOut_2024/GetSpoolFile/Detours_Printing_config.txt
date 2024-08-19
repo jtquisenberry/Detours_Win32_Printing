@@ -1,0 +1,5 @@
+Printer = Bullzip PDF Printer
+Spool File Source Path =  C:\Windows\System32\spool\PRINTERS
+Spool File Destination Path = D:\Projects\spool
+Log File Location = D:\Projects\GetSpoolerFiles.txt
+
