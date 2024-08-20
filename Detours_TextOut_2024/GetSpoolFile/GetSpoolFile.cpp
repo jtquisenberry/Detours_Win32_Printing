@@ -19,7 +19,6 @@
 #include <sstream>
 
 
-#define BUFFERSIZE 305
 #define BUFSIZE 512
 
 DWORD g_BytesTransferred = 0;
@@ -27,6 +26,7 @@ std::wstring printer = L"";
 std::wstring spool_file_source_path = L"";
 std::wstring spool_file_destination_path = L"";
 std::wstring log_file_location = L"";
+int job_id = 0;
 
 VOID CALLBACK FileIOCompletionRoutine(
     __in  DWORD dwErrorCode,
@@ -39,8 +39,8 @@ VOID CALLBACK FileIOCompletionRoutine(
     __in  DWORD dwNumberOfBytesTransfered,
     __in  LPOVERLAPPED lpOverlapped)
 {
-    _tprintf(TEXT("Error code:\t%x\n"), dwErrorCode);
-    _tprintf(TEXT("Number of bytes:\t%x\n"), dwNumberOfBytesTransfered);
+    _tprintf(TEXT("Error code:        %d\n"), dwErrorCode);
+    _tprintf(TEXT("Number of bytes:   %d\n"), dwNumberOfBytesTransfered);
     g_BytesTransferred = dwNumberOfBytesTransfered;
 }
 
@@ -154,21 +154,52 @@ BOOL GetFileNameFromHandle(HANDLE hFile)
 }
 
 
-void ReadFileFromPath(LPCWSTR path)
+long GetFileSize(std::wstring strFileName)
 {
+    HANDLE hFile = CreateFile(strFileName.c_str(), GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFile == INVALID_HANDLE_VALUE)
+        return -1; // error condition, could call GetLastError to find out more
+
+    LARGE_INTEGER size;
+    if (!GetFileSizeEx(hFile, &size))
+    {
+        CloseHandle(hFile);
+        return -1; // error condition, could call GetLastError to find out more
+    }
+
+    CloseHandle(hFile);
+
+    return size.QuadPart;
+}
+
+
+
+void ReadFileFromPath(int jobId = 2)
+{
+    //int jobId = 2;
+    wchar_t strPrinterJob[300] = { 0 };
+    wsprintf(strPrinterJob, L"%s\\%05d%s", spool_file_source_path.c_str(), jobId, L".spl");
+    long nSpoolSize = GetFileSize(strPrinterJob);
+   
+    
     // Based on
     // https://learn.microsoft.com/en-us/windows/win32/fileio/opening-a-file-for-reading-or-writing
-    HANDLE hFile = CreateFile(path,
+    HANDLE hFile = CreateFile(strPrinterJob,
         GENERIC_ALL, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    DWORD  dwBytesRead = 0;
-    char   ReadBuffer[BUFFERSIZE] = { 0 };
+    //DWORD  dwBytesRead = 0;
+    LPVOID ReadBuffer = (LPVOID)malloc(nSpoolSize);
+
+
+    //char   ReadBuffer[nSpoolSize] = { 0 };
     OVERLAPPED ol = { 0 };
 
     // Get standard file information from handle
     LPBY_HANDLE_FILE_INFORMATION lpFileInformation = (LPBY_HANDLE_FILE_INFORMATION)malloc(sizeof(LPBY_HANDLE_FILE_INFORMATION));
     BOOL result = 0;
     result = GetFileInformationByHandle(hFile, lpFileInformation);
-    wprintf(L"nFileSizeHigh %d\n", lpFileInformation->nFileSizeLow);
+    wprintf(L"nFileSizeLow: %d, nFileSizeHigh: %d\n", lpFileInformation->nFileSizeLow, lpFileInformation->nFileSizeHigh);
 
     // Get filename information from handle
     size_t size = sizeof(FILE_NAME_INFO) + sizeof(WCHAR) * MAX_PATH;
@@ -182,46 +213,66 @@ void ReadFileFromPath(LPCWSTR path)
 
     printf("\n");
 
-    int nHandle = _open_osfhandle((intptr_t)hFile, O_RDONLY);
-    FILE* in = _fdopen(nHandle, "rb");
-    FILE* out = fopen("d:\\projects\\def.spl", "wb");
+    //int nHandle = _open_osfhandle((intptr_t)hFile, O_RDONLY);
+    //FILE* in = _fdopen(nHandle, "rb");
 
-    result = ReadFileEx(hFile, ReadBuffer, BUFFERSIZE - 1, &ol, FileIOCompletionRoutine);
+
+
+    result = ReadFileEx(hFile, ReadBuffer, nSpoolSize, &ol, FileIOCompletionRoutine);
     if (result == FALSE)
     {
         printf("Terminal failure: Unable to read from file.\n GetLastError=%08x\n", GetLastError());
     }
 
     SleepEx(3000, TRUE);
-    dwBytesRead = g_BytesTransferred;
+
+    wchar_t strSpoolFileDestination[300];
+    wsprintf(strSpoolFileDestination, L"%s\\%05d%s", spool_file_destination_path.c_str(), jobId, L".spl");
+    FILE* out = _wfopen(strSpoolFileDestination, L"wb");
+    // FILE* file = fopen("d:\\projects\\ghi.spl", "wb");
+    fwrite(ReadBuffer, 1, nSpoolSize, out);
+    
+    //fclose(in);
+    fclose(out);
     CloseHandle(hFile);
+
+    return;
 }
 
 
-void ReadPrinterData(std::wstring printerName = L"", int jobId = 2)
+void ReadPrinterData(int jobId = 2)
 {
     
-    //std::string printerName = "Bullzip PDF Printer, Job 0042";
-    //wchar_t printerName2[] = L"Bullzip PDF Printer";
     wprintf(L"\n");
     wchar_t strPrinterJob[300];
-    wsprintf(strPrinterJob, L"%s, Job %04d", printerName.c_str(), jobId);
+    // Four digits for jobId is not a typo. It comes from this documentation.
+    // https://learn.microsoft.com/en-us/windows/win32/printdocs/readprinter
+    wsprintf(strPrinterJob, L"%s, Job %05d", printer.c_str(), jobId);  
     wprintf(L"Reading %s", strPrinterJob);
     HANDLE phPrinter;
     BOOL result = OpenPrinter((LPTSTR)strPrinterJob, &phPrinter, NULL);
 
-    BYTE* pBuf = (BYTE*)malloc(1000000);
+    BYTE* pBuf = (BYTE*)malloc(104857600);  // 100 MiB
     DWORD pNoBytesRead = 0; 
-    BOOL result_ReadPrinter = ReadPrinter(phPrinter, pBuf, 1000000, &pNoBytesRead);
-
+    BOOL result_ReadPrinter = 0;
+    
+    long buffer_index = 0;
+    long total_read = 0;
+    do {
+        buffer_index += pNoBytesRead;
+        ReadPrinter(phPrinter, &pBuf[buffer_index], 104857600, &pNoBytesRead);
+        total_read += pNoBytesRead;
+    } while (pNoBytesRead > 0);
+    
     wchar_t strPrinterDataFile[300];
-    wsprintf(strPrinterDataFile, L"%s\\%04d%s", spool_file_destination_path.c_str(), jobId, L".bin");
+    wsprintf(strPrinterDataFile, L"%s\\%05d%s", spool_file_destination_path.c_str(), jobId, L".bin");
     FILE* file = _wfopen(strPrinterDataFile, L"wb");
     // FILE* file = fopen("d:\\projects\\ghi.spl", "wb");
-    fwrite(pBuf, 1, pNoBytesRead, file);
+    int a = fwrite(pBuf, 1, total_read, file);
     fclose(file);
 
-    char charBuf[16] = {'\0'};
+    // Display the first 15 characters in the console window.
+    char charBuf[16] = {0};
     memcpy(charBuf, pBuf, 15);
     std::string s(charBuf);
     std::cout << s.substr(0, 15);
@@ -235,24 +286,22 @@ void ReadPrinterData(std::wstring printerName = L"", int jobId = 2)
 }
 
 
-
-void ReadJobs(std::wstring printerName=L"")
+void ReadPrinterJobs()
 {
     // https://learn.microsoft.com/en-us/windows/win32/fileio/opening-a-file-for-reading-or-writing
     
     //HANDLE hFile;
     DWORD  dwBytesRead = 0;
-    char   ReadBuffer[BUFFERSIZE] = { 0 };
-    OVERLAPPED ol = { 0 };
+    // char   ReadBuffer[3] = { 0 };
+    // OVERLAPPED ol = { 0 };
 
     printf("\n");
 
-    //LPTSTR printerName = (LPTSTR)L"Bullzip PDF Printer";
     PRINTER_DEFAULTS* pDefault = new PRINTER_DEFAULTS();
     pDefault->DesiredAccess = PRINTER_ALL_ACCESS;
 
     HANDLE phPrinter;
-    BOOL result = OpenPrinter((LPTSTR)printerName.c_str(), &phPrinter, pDefault);
+    BOOL result = OpenPrinter((LPTSTR)printer.c_str(), &phPrinter, pDefault);
     JOB_INFO_2* pJobInfo = 0;
     DWORD bytesNeeded = 0, jobsReturned = 0;
 
@@ -289,42 +338,85 @@ int SetVariables(std::unordered_map<std::wstring, std::wstring> config)
     spool_file_destination_path = config[L"Spool File Destination Path"];
     log_file_location = config[L"Log File Location"];
 
+    if (job_id <= 0)
+    {
+        job_id = wcstol(config[L"Job ID"].c_str(), NULL, 0);
+    }
+
     return 0;
 }
 
+bool is_numeric(char* str) {
+    int total = strlen(str);
+    int numeric_count = 0;
 
+    for (int i = 0; i < strlen(str); i++) {
+        if (isdigit(str[i]))
+            numeric_count++;
+    }
 
-int main()
+    if (total - numeric_count == 0)
+        return true;
+
+    return false;
+}
+
+bool is_numeric(std::string str)
 {
+    int total = strlen(str.c_str());
+    int numeric_count = 0;
+
+    for (int i = 0; i < strlen(str.c_str()); i++) {
+        if (isdigit(str[i]))
+            numeric_count++;
+    }
+
+    if (total - numeric_count == 0)
+        return true;
+
+    return false;
+}
+
+void PrintHelp()
+{
+    std::cout << "Usage: \n";
+    std::cout << "GetSpoolFile.exe " << "<JobId>\n";
+}
+
+int main(int argc, char* argv[])
+{
+    // Process command-line arguments
+    std::vector<std::string> arguments;
+    for (int i = 1; i < argc; ++i) 
+    {
+        std::string arg(argv[i]);
+
+        if (arg == "-h" || arg == "--help") {
+            PrintHelp();
+        }
+        // else if (arg == "--pid") {
+        else
+        {
+            std::string strJobId = argv[i];
+            if (is_numeric(strJobId)) {
+                job_id = stoi(strJobId);
+            }
+        }
+    }
+    
     ConfigReader reader;
     reader.Read();
     std::unordered_map<std::wstring, std::wstring> config = reader.GetConfig();
     SetVariables(config);
     
-    
     /* Read file given a fully-qualified filename. */
-    LPCWSTR spoolFilePath = L"C:\\Windows\\System32\\spool\\PRINTERS\\00002.SPL";
-    ReadFileFromPath(spoolFilePath);
+    ReadFileFromPath(job_id);
 
     /* Read spool file from Printer */
-    ReadJobs(L"Bullzip PDF Printer");
-    ReadPrinterData(L"Bullzip PDF Printer", 2);
-
-    /* Read the file given a handle */
-    /*
-    HANDLE hFile = CreateFile(spoolFilePath,
-        GENERIC_ALL, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    GetFileNameFromHandle(hFile);
-    int nHandle = _open_osfhandle((intptr_t)hFile, O_RDONLY);
-    FILE* fp = _fdopen(nHandle, "rb");
-    FILE* out = fopen("d:\\projects\\abc.spl", "wb");
-    filecopy(out, fp);
-    fclose(fp);
-    fclose(out);
-    */
+    ReadPrinterJobs();
+    ReadPrinterData(job_id);
         
     return 0;
-
 }
 
 

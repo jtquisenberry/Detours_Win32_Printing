@@ -34,11 +34,25 @@ public:
         return orig_string;
     }
 
-
+    bool file_exists(std::wstring fileName)
+    {
+        std::wifstream infile(fileName);
+        return infile.good();
+    }
 
 	int Read()
 	{
-        // Open the configuration, but first create it if it does not exist.
+        if (!file_exists(m_strFilename))
+        {
+            std::wofstream outfile(m_strFilename);
+            outfile.write(L"Printer = Bullzip PDF Printer\n", 30);
+            outfile.write(L"Spool File Source Path = C:\\Windows\\System32\\spool\\PRINTERS\n", 60);
+            outfile.write(L"Spool File Destination Path = D:\\Projects\\spool\n", 48);
+            outfile.write(L"Log File Location = D:\\Projects\\GetSpoolerFiles.txt\n", 52);
+            outfile.write(L"Job ID = 3\n", 11);
+            outfile.close();
+        }
+
         std::wifstream configFileStream(m_strFilename) ;
         //configFileStream.open(m_strFilename);
         if (!configFileStream.is_open())
@@ -64,6 +78,8 @@ public:
                 m_configData[key] = value;
             }
         }
+
+        return 0;
 	}
 
     std::unordered_map<std::wstring, std::wstring> GetConfig()
