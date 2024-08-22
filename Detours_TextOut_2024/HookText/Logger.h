@@ -81,9 +81,9 @@ public:
 
         ws += L"\\" + strFilename;
 
-        MessageBox(NULL, L"Title", ws.c_str(), MB_OK);
+        //MessageBox(NULL, L"Title", ws.c_str(), MB_OK);
         m_strFQLogFilename = ws;
-        MessageBox(NULL, L"Title", m_strFQLogFilename.c_str(), MB_OK);
+        //MessageBox(NULL, L"Title", m_strFQLogFilename.c_str(), MB_OK);
 
         //std::wstring m_strFQLogFilename(str_ObjectsPath);
     }
