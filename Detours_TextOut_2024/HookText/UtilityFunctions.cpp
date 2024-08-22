@@ -30,7 +30,7 @@ std::wstring IntToBinaryStringW(int nFlags)
 	char strFlagsA[100] = { 0 };
 	wchar_t strFlagW[100] = { 0 };
 	ConvertDecToBin(nFlags, strFlagsA);
-	MultiByteToWideChar(CP_ACP, 0, strFlagsA, strlen(strFlagsA) + 1, strFlagW, sizeof(strFlagW) / sizeof(strFlagW[0]));
+	MultiByteToWideChar(CP_ACP, 0, strFlagsA, (int)(strlen(strFlagsA) + 1), strFlagW, (int)(sizeof(strFlagW) / sizeof(strFlagW[0])));
 	std::wstring strFlag(strFlagW);
 	return strFlag;
 }

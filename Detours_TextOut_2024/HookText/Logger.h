@@ -23,6 +23,12 @@ public:
 
     Logger(std::wstring strLogFile=L"")
     {
+        
+        // Initialization
+        hFile = 0x0;
+        m_fileLogFile = nullptr;
+
+        
         m_strFQLogFilename = strLogFile;
     }
 
@@ -60,10 +66,10 @@ public:
         char* base_path;
         size_t len;
         errno_t err = _dupenv_s(&base_path, &len, "USERPROFILE");
-        char str_ObjectsPath[260];
-        memset(&str_ObjectsPath[0], 0, sizeof(str_ObjectsPath));
-        strcat_s(str_ObjectsPath, 260, base_path);
-        strcat_s(str_ObjectsPath, 260, strFilename.c_str());        
+        std::string s(base_path);
+        s += "\\" + strFilename;
+        std::wstring ws(s.begin(), s.end());
+        m_strFQLogFilename = ws;
     }
 
     void SetPathUserProfile(std::wstring strFilename=L"")
@@ -72,25 +78,18 @@ public:
         size_t len;
         errno_t err = _wdupenv_s(&base_path, &len, L"USERPROFILE");
         std::wstring ws(base_path);
-        // MessageBox(NULL, L"Title", ws.c_str(), MB_OK);
-
-        //wchar_t str_ObjectsPath[260];
-        //memset(&str_ObjectsPath[0], 0, sizeof(str_ObjectsPath));
-        //wcscat_s(str_ObjectsPath, 260, base_path);
-        //wcscat_s(str_ObjectsPath, 260, strFilename.c_str());
-
         ws += L"\\" + strFilename;
-
-        //MessageBox(NULL, L"Title", ws.c_str(), MB_OK);
         m_strFQLogFilename = ws;
-        //MessageBox(NULL, L"Title", m_strFQLogFilename.c_str(), MB_OK);
-
-        //std::wstring m_strFQLogFilename(str_ObjectsPath);
     }
 
     void Open()
     {
         m_fileLogFile = _wfopen(m_strFQLogFilename.c_str(), L"a+");
+    }
+
+    void Flush()
+    {
+        fflush(m_fileLogFile);
     }
 
     void Close()

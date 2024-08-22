@@ -14,8 +14,8 @@ void GetPathAndFilenameW(wchar_t* FQFilename, std::wstring* strPath, std::wstrin
 {
     std::wstring strFQFilename(FQFilename);
 
-    int last_backslash_position = strFQFilename.find_last_of(L"\\/");
-    int last_dot_position = strFQFilename.find_last_of(L".");
+    int last_backslash_position = (int)strFQFilename.find_last_of(L"\\/");
+    int last_dot_position = (int)strFQFilename.find_last_of(L".");
     *strPath = strFQFilename.substr(0, last_backslash_position);
     *strFilename = strFQFilename.substr(last_backslash_position + 1, (strFQFilename.length() - last_backslash_position - 1));
 

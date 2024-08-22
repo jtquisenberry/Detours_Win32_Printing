@@ -274,20 +274,38 @@ int WINAPI MyPrintDlgW(LPPRINTDLGW lpprintdlgw)
 	return RETURN_PrintDlgW;
 }
 
-BOOL WINAPI MyAddJobW(HANDLE hPrinter, DWORD Level, LPBYTE pData, DWORD cbBuf, LPDWORD pcbNeeded)
+BOOL WINAPI MyAddJobA(HANDLE hPrinter, DWORD Level, LPBYTE pData, DWORD cbBuf, LPDWORD pcbNeeded)
 {
-	BOOL RETURN_AddJobW = pAddJobW(hPrinter, Level, pData, cbBuf, pcbNeeded);
+	BOOL ReturnValue = pAddJobW(hPrinter, Level, pData, cbBuf, pcbNeeded);
 
 	fwprintf(pFile, L"\n");
 	fwprintf(pFile, L"-----------------------------------------------------------\n");
-	fwprintf(pFile, L"nAddJobW\n");
+	fwprintf(pFile, L"AddJobA\n");
 	fwprintf(pFile, L"-----------------------------------------------------------\n");
 
 	fwprintf(pFile, L"hPrinter =             %p", hPrinter);
 	fwprintf(pFile, L"Level =                %d", Level);
 	fwprintf(pFile, L"pData =                %p", pData);
 	fwprintf(pFile, L"cbBuf =                %d", cbBuf);
-	fwprintf(pFile, L"pcbNeeded =            %d", pcbNeeded);
+	fwprintf(pFile, L"pcbNeeded =            %ul", *pcbNeeded);
+
+	return ReturnValue;
+}
+
+BOOL WINAPI MyAddJobW(HANDLE hPrinter, DWORD Level, LPBYTE pData, DWORD cbBuf, LPDWORD pcbNeeded)
+{
+	BOOL RETURN_AddJobW = pAddJobW(hPrinter, Level, pData, cbBuf, pcbNeeded);
+
+	fwprintf(pFile, L"\n");
+	fwprintf(pFile, L"-----------------------------------------------------------\n");
+	fwprintf(pFile, L"AddJobW\n");
+	fwprintf(pFile, L"-----------------------------------------------------------\n");
+
+	fwprintf(pFile, L"hPrinter =             %p", hPrinter);
+	fwprintf(pFile, L"Level =                %d", Level);
+	fwprintf(pFile, L"pData =                %p", pData);
+	fwprintf(pFile, L"cbBuf =                %d", cbBuf);
+	fwprintf(pFile, L"pcbNeeded =            %ul", *pcbNeeded);
 
 	return RETURN_AddJobW;
 }
@@ -354,7 +372,7 @@ int WINAPI MyTextOutA(HDC hdc, int nXStart, int nYStart, LPCSTR lpString, int cb
 	fwprintf(pFile, L"TextOutA\n");
 	fwprintf(pFile, L"-----------------------------------------------------------\n");
 
-	fwprintf(pFile, L"lpString =             %s\n", lpString);
+	fwprintf(pFile, L"lpString =             %hs\n", lpString);
 
 	return ReturnValue;
 }
@@ -382,7 +400,7 @@ int WINAPI MyDrawTextA(HDC hDC, LPCSTR lpchText, int nCount, LPRECT lpRect, UINT
 	fwprintf(pFile, L"DrawTextA\n");
 	fwprintf(pFile, L"-----------------------------------------------------------\n");
 
-	fwprintf(pFile, L"lpchText =             %s\n", lpchText);
+	fwprintf(pFile, L"lpchText =             %hs\n", lpchText);
 
 	return ReturnValue;
 }
@@ -545,7 +563,7 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD dwReason, LPVOID reserved)
 
 		DetourAttach(&(PVOID&)pPrintDlgW, MyPrintDlgW);
 		DetourAttach(&(PVOID&)pPrintDlgExW, MyPrintDlgExW);
-		//DetourAttach(&(PVOID&)pAddJobA, MyAddJobA);
+		DetourAttach(&(PVOID&)pAddJobA, MyAddJobA);
 		DetourAttach(&(PVOID&)pAddJobW, MyAddJobW);
 		DetourAttach(&(PVOID&)pStartDocA, MyStartDocA);
 		DetourAttach(&(PVOID&)pStartDocW, MyStartDocW);
@@ -563,32 +581,27 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD dwReason, LPVOID reserved)
 		DetourAttach(&(PVOID&)pPolyTextOutA, MyPolyTextOutA);
 		DetourAttach(&(PVOID&)pPolyTextOutW, MyPolyTextOutW);
 
-
-
-
-
-
-
-
-
-
         DetourTransactionCommit();
-        
     }
+	else if (dwReason == DLL_THREAD_ATTACH)
+	{
+
+	}
+	else if (dwReason == DLL_THREAD_DETACH)
+	{
+
+	}
     else if (dwReason == DLL_PROCESS_DETACH) 
 	{
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
         DetourTransactionCommit();
 
+		logger.Flush();
 		logger.Close();
     }
     return TRUE;
 }
-
-
-
-
 
 
 /*
