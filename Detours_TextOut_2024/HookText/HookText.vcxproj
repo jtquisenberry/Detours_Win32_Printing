@@ -147,6 +147,7 @@
     <ClInclude Include="HookText.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="PrintDialogFlags.h" />
     <ClInclude Include="StreamLogger.h" />
     <ClInclude Include="StringsAndDirectories.h" />
   </ItemGroup>

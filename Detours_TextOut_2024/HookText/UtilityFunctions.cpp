@@ -3,6 +3,8 @@
 #include "pch.h"
 #include <stdio.h>
 #include <string>
+#include <iostream>
+#include <unordered_map> 
 
 
 void ConvertDecToBin(int IntegerToConvert, char char_Output[])
@@ -34,3 +36,5 @@ std::wstring IntToBinaryStringW(int nFlags)
 	std::wstring strFlag(strFlagW);
 	return strFlag;
 }
+
+

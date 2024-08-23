@@ -4,28 +4,21 @@
 
 #include "pch.h"
 #include "HookText.h"
+#include "PrintDialogFlags.h"
 #include "Logger.h"
 #include <stdio.h>
 #include <string>
 
 
-// Module-level variables
+/* Module-level variables */
 FILE* pFile;
-HDC hDC_current = 0x0;
-
-
 Logger logger;
-
-
+PrintDialogFlags print_dialog_flags;
 HDC g_hDC;
 HWND g_hWnd;
 
-//int g_nPrintAttempts = 0;
-//int g_nSaveDC = 0;
-//int g_StartPageCounter = 0;
 
-
-// Function declarations
+/* Function declarations */
 
 
 
@@ -35,7 +28,7 @@ HWND g_hWnd;
  * defined below.
  ********************************************************************************************************/
 
-// Start Printing
+// Starting Print Process
 int(WINAPI* pPrintDlgW)(LPPRINTDLGW) = PrintDlgW;
 long(WINAPI* pPrintDlgExW)(LPPRINTDLGEXW) = PrintDlgExW;
 BOOL(WINAPI* pAddJobA)(HANDLE, DWORD, LPBYTE, DWORD, LPDWORD) = AddJobA;
@@ -61,40 +54,43 @@ BOOL(WINAPI* pPolyTextOutA)(HDC, CONST POLYTEXTA*, int) = PolyTextOutA;
 BOOL(WINAPI* pPolyTextOutW)(HDC, CONST POLYTEXTW*, int) = PolyTextOutW;
 
 
-
-void WINAPI PrintPrintDlgExW(LPPRINTDLGEXW lpprintdlgexw01)
+void WINAPI PrintPrintDlgExW(LPPRINTDLGEXW lpprintdlgexw)
 {
-	fwprintf(pFile, L"hDC =                  %p\n", lpprintdlgexw01->hDC);
-	fwprintf(pFile, L"lStructSize =          %d\n", lpprintdlgexw01->lStructSize);
-	fwprintf(pFile, L"hwndOwner =            %p\n", lpprintdlgexw01->hwndOwner);
-	fwprintf(pFile, L"hDevMode =             %p\n", lpprintdlgexw01->hDevMode);
-	fwprintf(pFile, L"hDevName s=            %p\n", lpprintdlgexw01->hDevNames);
-	fwprintf(pFile, L"Flags =                %s\n", (IntToBinaryStringW(lpprintdlgexw01->Flags)).c_str());
-	fwprintf(pFile, L"Flags2 =               %d\n", lpprintdlgexw01->Flags2);
-	fwprintf(pFile, L"ExclusionFlags =       %d\n", lpprintdlgexw01->ExclusionFlags);
-	fwprintf(pFile, L"nPageRanges =          %d\n", lpprintdlgexw01->nPageRanges);
-	fwprintf(pFile, L"nMaxPageRanges =       %d\n", lpprintdlgexw01->nMaxPageRanges);
-	fwprintf(pFile, L"nMinPage =             %d\n", lpprintdlgexw01->nMinPage);
-	fwprintf(pFile, L"nMaxPage =             %d\n", lpprintdlgexw01->nMaxPage);
-	fwprintf(pFile, L"nCopies =              %d\n", lpprintdlgexw01->nCopies);
-	fwprintf(pFile, L"hInstance =            %p\n", lpprintdlgexw01->hInstance);
-	fwprintf(pFile, L"nlpPrintTemplateName = %s\n", lpprintdlgexw01->lpPrintTemplateName);
-	fwprintf(pFile, L"nlpCallback =          %p\n", lpprintdlgexw01->lpCallback);
-	fwprintf(pFile, L"nPropertyPages =       %d\n", lpprintdlgexw01->nPropertyPages);
-	fwprintf(pFile, L"lphPropertyPages =     %p\n", lpprintdlgexw01->lphPropertyPages);
-	fwprintf(pFile, L"nStartPage =           %d\n", lpprintdlgexw01->nStartPage);
-	fwprintf(pFile, L"dwResultAction =       %d\n", lpprintdlgexw01->dwResultAction);
+	fwprintf(pFile, L"hDC =                  %p\n", lpprintdlgexw->hDC);
+	fwprintf(pFile, L"lStructSize =          %d\n", lpprintdlgexw->lStructSize);
+	fwprintf(pFile, L"hwndOwner =            %p\n", lpprintdlgexw->hwndOwner);
+	fwprintf(pFile, L"hDevMode =             %p\n", lpprintdlgexw->hDevMode);
+	fwprintf(pFile, L"hDevName s=            %p\n", lpprintdlgexw->hDevNames);
+	fwprintf(pFile, L"Flags (Binary) =       %s\n", (IntToBinaryStringW(lpprintdlgexw->Flags)).c_str());
+	fwprintf(pFile, L"Flags (Hex)  =         %#020x\n", lpprintdlgexw->Flags);
+	fwprintf(pFile, L"Flags (Text) =         %s\n", print_dialog_flags.GetNames(lpprintdlgexw->Flags).c_str());
+	fwprintf(pFile, L"Flags2 =               %d\n", lpprintdlgexw->Flags2);
+	fwprintf(pFile, L"ExclusionFlags =       %d\n", lpprintdlgexw->ExclusionFlags);
+	fwprintf(pFile, L"nPageRanges =          %d\n", lpprintdlgexw->nPageRanges);
+	fwprintf(pFile, L"nMaxPageRanges =       %d\n", lpprintdlgexw->nMaxPageRanges);
+	fwprintf(pFile, L"nMinPage =             %d\n", lpprintdlgexw->nMinPage);
+	fwprintf(pFile, L"nMaxPage =             %d\n", lpprintdlgexw->nMaxPage);
+	fwprintf(pFile, L"nCopies =              %d\n", lpprintdlgexw->nCopies);
+	fwprintf(pFile, L"hInstance =            %p\n", lpprintdlgexw->hInstance);
+	fwprintf(pFile, L"nlpPrintTemplateName = %s\n", lpprintdlgexw->lpPrintTemplateName);
+	fwprintf(pFile, L"nlpCallback =          %p\n", lpprintdlgexw->lpCallback);
+	fwprintf(pFile, L"nPropertyPages =       %d\n", lpprintdlgexw->nPropertyPages);
+	fwprintf(pFile, L"lphPropertyPages =     %p\n", lpprintdlgexw->lphPropertyPages);
+	fwprintf(pFile, L"nStartPage =           %d\n", lpprintdlgexw->nStartPage);
+	fwprintf(pFile, L"dwResultAction =       %d\n", lpprintdlgexw->dwResultAction);
 }
 
 void WINAPI PrintPrintDlg(LPPRINTDLG lpprintdlg)
 {
-	fwprintf(pFile, L"Flags =                %#010x\n", lpprintdlg->Flags);
 	fwprintf(pFile, L"hDC =                  %p\n", lpprintdlg->hDC);
 	fwprintf(pFile, L"hDevMode =             %p\n", lpprintdlg->hDevMode);
 	fwprintf(pFile, L"hInstance =            %p\n", lpprintdlg->hInstance);
 	fwprintf(pFile, L"hPrintTemplate =       %p\n", lpprintdlg->hPrintTemplate);
 	fwprintf(pFile, L"hSetupTemplate =       %p\n", lpprintdlg->hSetupTemplate);
 	fwprintf(pFile, L"hwndOwner =            %p\n", lpprintdlg->hwndOwner);
+	fwprintf(pFile, L"Flags (Binary) =       %s\n", (IntToBinaryStringW(lpprintdlg->Flags)).c_str());
+	fwprintf(pFile, L"Flags (Hex)  =         %#020x\n", lpprintdlg->Flags);
+	fwprintf(pFile, L"Flags (Text) =         %s\n", print_dialog_flags.GetNames(lpprintdlg->Flags).c_str());
 	fwprintf(pFile, L"lCustData =            %Id\n", lpprintdlg->lCustData);
 	fwprintf(pFile, L"lpfnPrintHook =        %p\n", lpprintdlg->lpfnPrintHook);
 	fwprintf(pFile, L"lpfnSetupHook =        %p\n", lpprintdlg->lpfnSetupHook);
@@ -107,7 +103,6 @@ void WINAPI PrintPrintDlg(LPPRINTDLG lpprintdlg)
 	fwprintf(pFile, L"nMinPage =             %d\n", lpprintdlg->nMinPage);
 	fwprintf(pFile, L"nToPage =              %d\n", lpprintdlg->nToPage);
 }
-
 
 void WINAPI PrintDevMode(DEVMODE* devmode)
 {
@@ -179,24 +174,12 @@ long WINAPI MyPrintDlgExW(LPPRINTDLGEXW lpprintdlgexw)
 	// Save the handle of the window that called PrintDlgExW
 	g_hWnd = lpprintdlgexw->hwndOwner;
 
-	// If this is the first attempt to print, then save the handle to the Device Context
-	// for later use.
-	/*
-	g_nPrintAttempts++;
-	if (g_nPrintAttempts == 1)
-	{
-		g_hDC = lpprintdlgexw->hDC;
-	}
-	*/
 	g_hDC = lpprintdlgexw->hDC;
 
 	fwprintf(pFile, L"\n");
 	fwprintf(pFile, L"-----------------------------------------------------------\n");
 	fwprintf(pFile, L"PrintDlgExW\n");
 	fwprintf(pFile, L"-----------------------------------------------------------\n");
-
-	// Update hDC here so it gets passed to subsequent functions.
-	// lpprintdlgexw->hDC = g_hDC;
 
 	PrintPrintDlgExW(lpprintdlgexw);
 	DEVMODE* devmode = (DEVMODE*)GlobalLock(lpprintdlgexw->hDevMode);
@@ -358,7 +341,6 @@ int WINAPI MyExtTextOutW(HDC hdc, int x, int y, UINT fuOptions, CONST RECT* lpre
 
 		fflush(pFile);
 	}
-
 	
 	return ReturnValue;
 }
@@ -531,19 +513,15 @@ int  WINAPI MyStartDocA(HDC hdc, CONST DOCINFOA* lpdi)
 }
 
 
+/************ DllMain **************************************************
+* DllMain function attaches and detaches the detoured functions. 
+************************************************************************/
 
-
-// DllMain function attaches and detaches the TimedSleep detour to the
-// Sleep target function.  The Sleep target function is referred to
-// through the TrueSleep target pointer.
-//
 BOOL WINAPI DllMain(HINSTANCE hinst, DWORD dwReason, LPVOID reserved)
 {
-    
     if (DetourIsHelperProcess()) {
         return TRUE;
     }
-    
 
     if (dwReason == DLL_PROCESS_ATTACH) 
 	{
@@ -556,11 +534,7 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD dwReason, LPVOID reserved)
         DetourTransactionBegin();
         DetourUpdateThread(GetCurrentThread());
 
-		//DetourAttach(&(PVOID&)TrueSleep, TimedSleep);
-        //DetourAttach(&(PVOID&)pStartDocW, MyStartDocW);
-		//DetourAttach(&(PVOID&)pExtTextOutW, MyExtTextOutW);
-		//DetourAttach(&(PVOID&)pPrintDlgW, MyPrintDlgW);
-
+		// Attach detoured functions.
 		DetourAttach(&(PVOID&)pPrintDlgW, MyPrintDlgW);
 		DetourAttach(&(PVOID&)pPrintDlgExW, MyPrintDlgExW);
 		DetourAttach(&(PVOID&)pAddJobA, MyAddJobA);
@@ -602,23 +576,3 @@ BOOL WINAPI DllMain(HINSTANCE hinst, DWORD dwReason, LPVOID reserved)
     }
     return TRUE;
 }
-
-
-/*
-
-BOOL APIENTRY DllMain( HMODULE hModule,
-                       DWORD  ul_reason_for_call,
-                       LPVOID lpReserved
-                     )
-{
-    switch (ul_reason_for_call)
-    {
-    case DLL_PROCESS_ATTACH:
-    case DLL_THREAD_ATTACH:
-    case DLL_THREAD_DETACH:
-    case DLL_PROCESS_DETACH:
-        break;
-    }
-    return TRUE;
-}
-*/
