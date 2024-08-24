@@ -23,7 +23,7 @@ public:
         }
         else
         {
-            m_strFilename = L"Detours_Printing_config.txt";
+            m_strFilename = L"GetSpoolFile.cfg";
         }
 	}
 
