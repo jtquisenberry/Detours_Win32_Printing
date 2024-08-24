@@ -1,4 +1,4 @@
-# Windows API Hooking and DLL Injection with Microsoft Detours
+# Windows Printing API Hooking and DLL Injection with Microsoft Detours
 
 This repository demonstrates Windows API hooking and DLL injection using the Microsoft Detours injection framework. Projects focus on hooking the APIs of the Windows printing subsystem. A supporting project demonstrates interaction with the Windows print spooler.
 
