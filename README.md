@@ -1,4 +1,4 @@
-# Windows Printing API Hooking and DLL Injection with Microsoft Detours
+# Windows Print API Hooking and DLL Injection with Microsoft Detours
 
 This repository demonstrates Windows API hooking and DLL injection using the Microsoft Detours injection framework. Projects focus on hooking the APIs of the Windows printing subsystem. A supporting project demonstrates interaction with the Windows print spooler.
 
@@ -45,7 +45,7 @@ Sysinternals Process Explorer shows `HookText.dll` has been injected into `Wordp
 
 The `WithDllEXE` executable injects a 64-bit DLL into a 64-bit target application. It starts an executable file as a new process in suspended mode and injects the DLL.
 
-This executable is a slightly modified version of the `withdll` sample in the Detours source code. https://github.com/microsoft/Detours/tree/main/samples/withdll. The original version compiles to  a DLL. The version in this repository compiles to a command-line executable.
+This executable is a slightly modified version of the `withdll` sample in the Detours source code. https://github.com/microsoft/Detours/tree/main/samples/withdll. The original version compiles to a DLL. The version in this repository compiles to a command-line executable.
 
 `WithDllEXE` requires that the payload DLL exports ordinal #1. `WithDllEXE` continues running until the target processes terminates.
 
