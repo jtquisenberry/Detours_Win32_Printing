@@ -8,8 +8,8 @@ The motivation for this project was a need to detect when there is an attempt to
 
 The `Capture_Printer_Text` solution hooks printing APIs used for GDI printing, intercepts their arguments and return values, and writes them to a log file. The `Capture_Printer_Text` solution contains these projects:
 
-* WithDLL
-* Payload1
+* WithDLLEXE
+* HookText
 * GetSpoolFile
 
 ## Why Detours
